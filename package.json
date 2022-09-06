@@ -1,0 +1,45 @@
+{
+  "name": "@manifoldxyz/token-owned-wallet-solidity",
+  "version": "0.0.1",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "files": [
+    "contracts/**/*.sol",
+    "build/contracts/*.json"
+  ],
+  "scripts": {
+    "test": "npx truffle test",
+    "test:start-network": "npx ganache-cli -a 15",
+    "test:all": "npm test && npm run fmt && npm run lint",
+    "prettier": "prettier --write '{**/*,*}.{js,ts,tsx,md,mdx,yml,sol}'",
+    "fmt": "prettier -c '{**/*,*}.{js,ts,tsx,md,mdx,yml,sol}'",
+    "lint": "solhint -w 0 'contracts/**/*.sol'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/manifoldxyz/token-owned-wallet-solidity.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/manifoldxyz/token-owned-wallet-solidity/issues"
+  },
+  "homepage": "https://github.com/manifoldxyz/token-owned-wallet-solidity#readme",
+  "devDependencies": {
+    "@openzeppelin/truffle-upgrades": "^1.9.1",
+    "eth-gas-reporter": "^0.2.23",
+    "ganache-cli": "^6.12.2",
+    "prettier": "^2.6.2",
+    "prettier-plugin-solidity": "^1.0.0-beta.19",
+    "solhint": "^3.3.7",
+    "truffle": "^5.4.21",
+    "truffle-assertions": "^0.9.2"
+  },
+  "dependencies": {
+    "@manifoldxyz/creator-core-solidity": "^1.0.4",
+    "@openzeppelin/contracts": "^4.7.3"
+  }
+}
