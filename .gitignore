@@ -11,3 +11,4 @@
 *.pyc
 build
 node_modules
+.openzeppelin
