@@ -19,7 +19,7 @@ library TokenOwnedWalletProxyFactory {
             type(TokenOwnedWalletProxy).creationCode,
             uint256(uint160(implementation))
         );
-        
+
         // solhint-disable-next-line no-inline-assembly
         assembly {
             proxy := create2(0x0, add(0x20, bytecode), mload(bytecode), salt)

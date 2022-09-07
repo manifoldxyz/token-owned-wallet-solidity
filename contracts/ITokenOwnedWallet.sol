@@ -17,16 +17,23 @@ interface ITokenOwnedWallet is IERC165, IERC721Receiver, IERC1155Receiver {
         uint256 id;
     }
 
+    enum Operation {
+        Call,
+        DelegateCall
+    }
+
     /**
      * @notice Executes a generic transaction.
      * @param target The address for the transaction.
      * @param value The value of the transaction.
      * @param data The data of the transaction.
+     * @param operation The type of operation to use for the transaction.
      */
     function execTransaction(
         address target,
         uint256 value,
-        bytes calldata data
+        bytes calldata data,
+        Operation operation
     ) external returns (bytes memory);
 
     /**

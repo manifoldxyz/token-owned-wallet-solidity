@@ -67,11 +67,17 @@ contract TokenOwnedWallet is ITokenOwnedWallet {
     function execTransaction(
         address _target,
         uint256 _value,
-        bytes calldata _data
+        bytes calldata _data,
+        Operation _operation
     ) public override onlyOwner returns (bytes memory _result) {
         bool success;
-        // solhint-disable-next-line avoid-low-level-calls
-        (success, _result) = _target.call{value: _value}(_data);
+        if (_operation == Operation.DelegateCall) {
+            // solhint-disable-next-line avoid-low-level-calls
+            (success, _result) = _target.delegatecall(_data);
+        } else {
+            // solhint-disable-next-line avoid-low-level-calls
+            (success, _result) = _target.call{value: _value}(_data);
+        }
         require(success, "TokenWallet: transaction failed");
         emit TransactionExecuted(_target, _value, _data);
         return _result;
@@ -166,7 +172,7 @@ contract TokenOwnedWallet is ITokenOwnedWallet {
         // Iterate through this wallet's ownership chain
         while (ERC165Checker.supportsInterface(currentOwner, type(ITokenOwnedWallet).interfaceId)) {
             Token memory currentToken = ITokenOwnedWallet(currentOwner).token();
-            
+
             require(
                 !(currentToken.contractAddress == receivedTokenAddress &&
                     currentToken.id == receivedTokenId),

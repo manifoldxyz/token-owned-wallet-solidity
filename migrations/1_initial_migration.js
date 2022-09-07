@@ -3,6 +3,6 @@ const TokenOwnedWalletProxyFactory = artifacts.require("TokenOwnedWalletProxyFac
 
 module.exports = function (deployer) {
   deployer.deploy(TokenOwnedWalletProxyFactory).then(() => {
-      deployer.link(TokenOwnedWalletProxyFactory, TokenOwnedWalletRegistry);
+    deployer.link(TokenOwnedWalletProxyFactory, TokenOwnedWalletRegistry);
   });
 };

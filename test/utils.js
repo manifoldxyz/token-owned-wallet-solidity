@@ -1,3 +1,5 @@
+const TokenOwnedWallet = artifacts.require("TokenOwnedWallet");
+
 const encodeERC721SafeTransferFrom = (fromAddress, toAddress, tokenId) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -66,4 +68,10 @@ const encodeERC1155SafeTransferFrom = (fromAddress, toAddress, tokenId, amount) 
   );
 };
 
-module.exports = { encodeERC721SafeTransferFrom, encodeERC1155SafeTransferFrom };
+const deployProxy = async (registry, tokenAddress, tokenId, contractOwner) => {
+  await registry.create(tokenAddress, tokenId, { from: contractOwner });
+  const contractAddress = await registry.addressOf(tokenAddress, tokenId);
+  return await TokenOwnedWallet.at(contractAddress);
+};
+
+module.exports = { encodeERC721SafeTransferFrom, encodeERC1155SafeTransferFrom, deployProxy };

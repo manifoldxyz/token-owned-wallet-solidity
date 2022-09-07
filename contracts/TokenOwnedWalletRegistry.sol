@@ -5,15 +5,20 @@ pragma solidity ^0.8.0;
 /// @author: manifold.xyz
 
 import "@openzeppelin/contracts/utils/Create2.sol";
+import "@openzeppelin/contracts/utils/StorageSlot.sol";
+import "./proxies/TokenOwnedWalletProxy.sol";
 import "./proxies/TokenOwnedWalletProxyFactory.sol";
 import "./TokenOwnedWallet.sol";
+
+interface ITokenOwnedWalletProxy {
+    function implementation() external view returns (address);
+}
 
 /**
  * @title TokenOwnedWalletRegistry
  * @notice A registry used to create and map token wallet instances to tokens.
  */
 contract TokenOwnedWalletRegistry {
-
     address private immutable _tokenWalletImplementation;
 
     // A mapping from salt (used for contract creation) to token wallet address
@@ -43,10 +48,7 @@ contract TokenOwnedWalletRegistry {
             return _saltToAddress[salt];
         }
 
-        address proxy = TokenOwnedWalletProxyFactory.createProxy(
-            _tokenWalletImplementation,
-            salt
-        );
+        address proxy = TokenOwnedWalletProxyFactory.createProxy(_tokenWalletImplementation, salt);
 
         TokenOwnedWallet(proxy).initialize(contractAddress, tokenId);
 
