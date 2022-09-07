@@ -4,22 +4,30 @@ pragma solidity ^0.8.0;
 
 /// @author: manifold.xyz
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/utils/StorageSlot.sol";
 import "./proxies/TokenOwnedWalletProxy.sol";
 import "./proxies/TokenOwnedWalletProxyFactory.sol";
 import "./TokenOwnedWallet.sol";
 
-interface ITokenOwnedWalletProxy {
+interface IProxy {
     function implementation() external view returns (address);
+}
+
+struct TokenOwnedWalletImplementation {
+    string version;
+    address implementation;
 }
 
 /**
  * @title TokenOwnedWalletRegistry
  * @notice A registry used to create and map token wallet instances to tokens.
  */
-contract TokenOwnedWalletRegistry {
-    address private immutable _tokenWalletImplementation;
+contract TokenOwnedWalletRegistry is Ownable {
+    address private _currentImplementation;
+
+    TokenOwnedWalletImplementation[] private _versionHistory;
 
     // A mapping from salt (used for contract creation) to token wallet address
     mapping(bytes32 => address) private _saltToAddress;
@@ -30,7 +38,11 @@ contract TokenOwnedWalletRegistry {
      * Constructor
      */
     constructor(address tokenWalletImplementation) {
-        _tokenWalletImplementation = tokenWalletImplementation;
+        _currentImplementation = tokenWalletImplementation;
+        _versionHistory.push(TokenOwnedWalletImplementation({
+            version: "1.0.0",
+            implementation: tokenWalletImplementation
+        }));
     }
 
     /**
@@ -48,7 +60,7 @@ contract TokenOwnedWalletRegistry {
             return _saltToAddress[salt];
         }
 
-        address proxy = TokenOwnedWalletProxyFactory.createProxy(_tokenWalletImplementation, salt);
+        address proxy = TokenOwnedWalletProxyFactory.createProxy(_currentImplementation, salt);
 
         TokenOwnedWallet(proxy).initialize(contractAddress, tokenId);
 
@@ -75,5 +87,34 @@ contract TokenOwnedWalletRegistry {
      */
     function addressExists(address contractAddress, uint256 tokenId) public view returns (bool) {
         return addressOf(contractAddress, tokenId) != address(0);
+    }
+
+    /**
+     * @notice Returns the wallet implementation owned by the provided token.
+     * @param contractAddress The token's contract address.
+     * @param tokenId The token's ID.
+     * @return TokenOwnedWalletImplementation - the implementation used by the token's wallet.
+     */
+    function implementationOf(address contractAddress, uint256 tokenId) public view returns (TokenOwnedWalletImplementation memory) {
+        require(addressExists(contractAddress, tokenId), "No wallet found");
+        address implementation = IProxy(addressOf(contractAddress, tokenId)).implementation();
+        for (uint256 i = 0; i < _versionHistory.length; i++) {
+            if (implementation == _versionHistory[i].implementation) {
+                return _versionHistory[i];
+            }
+        }
+        revert("Unsupported version");
+    }
+
+    /**
+     * @notice Publishes a new token wallet implementation.
+     * @param version A string representation of the version (e.g "1.0.2").
+     * @param implementation The address of the implementation contract.
+     */
+    function publishImplementation(string calldata version, address implementation) public onlyOwner {
+        _versionHistory.push(TokenOwnedWalletImplementation({
+            version: version,
+            implementation: implementation
+        }));
     }
 }
