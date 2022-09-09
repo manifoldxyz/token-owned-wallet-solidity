@@ -39,10 +39,12 @@ contract TokenOwnedWalletRegistry is Ownable {
      */
     constructor(address tokenWalletImplementation) {
         _currentImplementation = tokenWalletImplementation;
-        _versionHistory.push(TokenOwnedWalletImplementation({
-            version: "1.0.0",
-            implementation: tokenWalletImplementation
-        }));
+        _versionHistory.push(
+            TokenOwnedWalletImplementation({
+                version: "1.0.0",
+                implementation: tokenWalletImplementation
+            })
+        );
     }
 
     /**
@@ -95,7 +97,11 @@ contract TokenOwnedWalletRegistry is Ownable {
      * @param tokenId The token's ID.
      * @return TokenOwnedWalletImplementation - the implementation used by the token's wallet.
      */
-    function implementationOf(address contractAddress, uint256 tokenId) public view returns (TokenOwnedWalletImplementation memory) {
+    function implementationOf(address contractAddress, uint256 tokenId)
+        public
+        view
+        returns (TokenOwnedWalletImplementation memory)
+    {
         require(addressExists(contractAddress, tokenId), "No wallet found");
         address implementation = IProxy(addressOf(contractAddress, tokenId)).implementation();
         for (uint256 i = 0; i < _versionHistory.length; i++) {
@@ -111,10 +117,12 @@ contract TokenOwnedWalletRegistry is Ownable {
      * @param version A string representation of the version (e.g "1.0.2").
      * @param implementation The address of the implementation contract.
      */
-    function publishImplementation(string calldata version, address implementation) public onlyOwner {
-        _versionHistory.push(TokenOwnedWalletImplementation({
-            version: version,
-            implementation: implementation
-        }));
+    function publishImplementation(string calldata version, address implementation)
+        public
+        onlyOwner
+    {
+        _versionHistory.push(
+            TokenOwnedWalletImplementation({version: version, implementation: implementation})
+        );
     }
 }

@@ -21,7 +21,12 @@ contract TokenOwnedWallet is ITokenOwnedWallet {
     using Strings for uint256;
     using Strings for uint16;
 
-    event TransactionExecuted(address indexed target, uint256 indexed value, bytes data);
+    event TransactionExecuted(
+        address indexed target,
+        uint256 indexed value,
+        bytes data,
+        Operation operation
+    );
 
     // The ERC721 token linked to the wallet instance
     Token private _token;
@@ -79,7 +84,7 @@ contract TokenOwnedWallet is ITokenOwnedWallet {
             (success, _result) = _target.call{value: _value}(_data);
         }
         require(success, "TokenWallet: transaction failed");
-        emit TransactionExecuted(_target, _value, _data);
+        emit TransactionExecuted(_target, _value, _data, _operation);
         return _result;
     }
 
