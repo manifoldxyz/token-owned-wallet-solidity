@@ -31,6 +31,9 @@ contract TokenOwnedWallet is ITokenOwnedWallet {
     // The ERC721 token linked to the wallet instance
     Token private _token;
 
+    // The block timestamp that the last transaction was executed in.
+    uint256 public lastTransactionTimestamp;
+
     /**
      * @dev Throws if the sender is not the backpack owner.
      */
@@ -50,6 +53,7 @@ contract TokenOwnedWallet is ITokenOwnedWallet {
         require(_token.contractAddress == address(0) && _token.id == 0, "Already initialized");
         _token.contractAddress = contractAddress;
         _token.id = tokenId;
+        lastTransactionTimestamp = block.timestamp;
     }
 
     /**
@@ -83,7 +87,8 @@ contract TokenOwnedWallet is ITokenOwnedWallet {
             // solhint-disable-next-line avoid-low-level-calls
             (success, _result) = _target.call{value: _value}(_data);
         }
-        require(success, "TokenWallet: transaction failed");
+        require(success, "TokenOwnedWallet: tx failed");
+        lastTransactionTimestamp = block.timestamp;
         emit TransactionExecuted(_target, _value, _data, _operation);
         return _result;
     }
