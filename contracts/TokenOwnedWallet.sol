@@ -25,12 +25,7 @@ contract TokenOwnedWallet {
     address private _contractAddress;
     uint256 private _tokenId;
 
-    event TransactionExecuted(
-        address indexed target,
-        uint256 indexed value,
-        bytes data
-    );
-
+    event TransactionExecuted(address indexed target, uint256 indexed value, bytes data);
 
     function owner() public view returns (address) {
         require(_chainId == 0, "Invalid chain ");
@@ -51,12 +46,7 @@ contract TokenOwnedWallet {
         return _result;
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
         return (interfaceId == type(ITokenOwnedWallet).interfaceId ||
             interfaceId == type(IERC1155Receiver).interfaceId ||
             interfaceId == type(IERC721Receiver).interfaceId ||
@@ -69,7 +59,10 @@ contract TokenOwnedWallet {
         uint256 receivedTokenId,
         bytes memory
     ) public virtual returns (bytes4) {
-        require(_chainId != 0 || msg.sender != _contractAddress || receivedTokenId != _tokenId, "Cannot own yourself");
+        require(
+            _chainId != 0 || msg.sender != _contractAddress || receivedTokenId != _tokenId,
+            "Cannot own yourself"
+        );
         _revertIfOwnershipCycle(msg.sender, receivedTokenId);
         return this.onERC721Received.selector;
     }
@@ -100,7 +93,8 @@ contract TokenOwnedWallet {
      * @param receivedTokenId The ID of the token being received.
      */
     function _revertIfOwnershipCycle(address receivedTokenAddress, uint256 receivedTokenId)
-        internal view
+        internal
+        view
     {
         address currentOwner = owner();
         require(currentOwner != address(this), "Token in ownership chain");
@@ -111,9 +105,13 @@ contract TokenOwnedWallet {
             currentOwnerSize := extcodesize(currentOwner)
         }
         while (currentOwnerSize > 0) {
-            try ITokenOwnedWallet(currentOwner).token() returns (uint256 chainId, address contractAddress, uint256 tokenId) {
+            try ITokenOwnedWallet(currentOwner).token() returns (
+                uint256 chainId,
+                address contractAddress,
+                uint256 tokenId
+            ) {
                 require(
-                        chainId != 0 ||
+                    chainId != 0 ||
                         contractAddress != receivedTokenAddress ||
                         tokenId != receivedTokenId,
                     "Token in ownership chain"

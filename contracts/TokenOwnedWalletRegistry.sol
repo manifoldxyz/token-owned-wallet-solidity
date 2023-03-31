@@ -61,7 +61,11 @@ contract TokenOwnedWalletRegistry is Ownable {
      * @param tokenId The token's ID.
      * @return address - The address of the new or current wallet address.
      */
-    function create(uint256 chainId, address contractAddress, uint256 tokenId) external returns (address) {
+    function create(
+        uint256 chainId,
+        address contractAddress,
+        uint256 tokenId
+    ) external returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, contractAddress, tokenId));
 
         // Return backpack address if it already exists.
@@ -69,7 +73,14 @@ contract TokenOwnedWalletRegistry is Ownable {
             return _saltToAddress[salt];
         }
 
-        address proxy = _createProxy(proxyImplementation, chainId, contractAddress, tokenId, currentImplementation, salt);
+        address proxy = _createProxy(
+            proxyImplementation,
+            chainId,
+            contractAddress,
+            tokenId,
+            currentImplementation,
+            salt
+        );
         _saltToAddress[salt] = proxy;
         return proxy;
     }
@@ -79,10 +90,23 @@ contract TokenOwnedWalletRegistry is Ownable {
      * @param implementation Address of the implementation contract.
      * @param salt Salt used to generate the proxy contract address.
      */
-    function _createProxy(address clone, uint256 chainId, address contractAddress, uint256 tokenId, address implementation, bytes32 salt) private returns (address proxy) {
+    function _createProxy(
+        address clone,
+        uint256 chainId,
+        address contractAddress,
+        uint256 tokenId,
+        address implementation,
+        bytes32 salt
+    ) private returns (address proxy) {
         proxy = cloneDeterministic(clone, salt);
         (bool success, bytes memory data) = proxy.call(
-            abi.encodeWithSignature("initialize(uint256,address,uint256,address)", chainId, contractAddress, tokenId, implementation)
+            abi.encodeWithSignature(
+                "initialize(uint256,address,uint256,address)",
+                chainId,
+                contractAddress,
+                tokenId,
+                implementation
+            )
         );
         require(success, string(data));
 
@@ -96,12 +120,21 @@ contract TokenOwnedWalletRegistry is Ownable {
      * the clone. Using the same `implementation` and `salt` multiple time will revert, since
      * the clones cannot be deployed twice at the same address.
      */
-    function cloneDeterministic(address implementation, bytes32 salt) internal returns (address instance) {
+    function cloneDeterministic(address implementation, bytes32 salt)
+        internal
+        returns (address instance)
+    {
         /// @solidity memory-safe-assembly
         assembly {
             // Cleans the upper 96 bits of the `implementation` word, then packs the first 3 bytes
             // of the `implementation` address with the bytecode before the address.
-            mstore(0x00, or(shr(0xe8, shl(0x60, implementation)), 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000))
+            mstore(
+                0x00,
+                or(
+                    shr(0xe8, shl(0x60, implementation)),
+                    0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000
+                )
+            )
             // Packs the remaining 17 bytes of `implementation` with the bytecode after the address.
             mstore(0x20, or(shl(0x78, implementation), 0x5af43d82803e903d91602b57fd5bf3))
             instance := create2(0, 0x09, 0x37, salt)
@@ -116,7 +149,11 @@ contract TokenOwnedWalletRegistry is Ownable {
      * @param tokenId The token's ID.
      * @return address - The wallet address, or address(0) if the wallet doesn't exist.
      */
-    function addressOf(uint256 chainId, address contractAddress, uint256 tokenId) public view returns (address) {
+    function addressOf(
+        uint256 chainId,
+        address contractAddress,
+        uint256 tokenId
+    ) public view returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, contractAddress, tokenId));
         return _saltToAddress[salt];
     }
@@ -128,7 +165,11 @@ contract TokenOwnedWalletRegistry is Ownable {
      * @param tokenId The token's ID.
      * @return bool - Whether or not the address exists.
      */
-    function addressExists(uint256 chainId, address contractAddress, uint256 tokenId) public view returns (bool) {
+    function addressExists(
+        uint256 chainId,
+        address contractAddress,
+        uint256 tokenId
+    ) public view returns (bool) {
         return addressOf(chainId, contractAddress, tokenId) != address(0);
     }
 
@@ -139,13 +180,14 @@ contract TokenOwnedWalletRegistry is Ownable {
      * @param tokenId The token's ID.
      * @return TokenOwnedWalletImplementation - the implementation used by the token's wallet.
      */
-    function implementationOf(uint256 chainId, address contractAddress, uint256 tokenId)
-        public
-        view
-        returns (TokenOwnedWalletImplementation memory)
-    {
+    function implementationOf(
+        uint256 chainId,
+        address contractAddress,
+        uint256 tokenId
+    ) public view returns (TokenOwnedWalletImplementation memory) {
         require(addressExists(chainId, contractAddress, tokenId), "No wallet found");
-        address implementation = IProxy(addressOf(chainId, contractAddress, tokenId)).implementation();
+        address implementation = IProxy(addressOf(chainId, contractAddress, tokenId))
+            .implementation();
         for (uint256 i = 0; i < _versionHistory.length; i++) {
             if (implementation == _versionHistory[i].implementation) {
                 return _versionHistory[i];

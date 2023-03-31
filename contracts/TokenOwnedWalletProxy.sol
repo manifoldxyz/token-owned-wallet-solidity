@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/utils/StorageSlot.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract TokenOwnedWalletProxy is Initializable {
-
     uint256 private _chainId;
     address private _contractAddress;
     uint256 private _tokenId;
@@ -24,7 +23,12 @@ contract TokenOwnedWalletProxy is Initializable {
     /**
      * Initializer
      */
-    function initialize(uint256 chainId, address contractAddress, uint256 tokenId, address implementation_) public initializer {
+    function initialize(
+        uint256 chainId,
+        address contractAddress,
+        uint256 tokenId,
+        address implementation_
+    ) public initializer {
         require(implementation_ != address(0), "Invalid implementation address");
         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = implementation_;
         if (chainId != block.chainid) {
@@ -104,7 +108,15 @@ contract TokenOwnedWalletProxy is Initializable {
     /**
      * @dev Returns the owner token chainId, contract address, and token id.
      */
-    function token() external view returns (uint256 chainId, address tokenContract, uint256 tokenId) {
+    function token()
+        external
+        view
+        returns (
+            uint256 chainId,
+            address tokenContract,
+            uint256 tokenId
+        )
+    {
         if (_chainId == 0) {
             return (block.chainid, _contractAddress, _tokenId);
         }
@@ -137,5 +149,4 @@ contract TokenOwnedWalletProxy is Initializable {
     receive() external payable virtual {
         _fallback();
     }
-
 }
