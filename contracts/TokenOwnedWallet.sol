@@ -106,6 +106,7 @@ contract TokenOwnedWallet {
         require(currentOwner != address(this), "Token in ownership chain");
 
         uint32 currentOwnerSize;
+        /// @solidity memory-safe-assembly
         assembly {
             currentOwnerSize := extcodesize(currentOwner)
         }
@@ -120,6 +121,7 @@ contract TokenOwnedWallet {
                 // Advance up the ownership chain
                 currentOwner = IERC721(contractAddress).ownerOf(tokenId);
                 require(currentOwner != address(this), "Token in ownership chain");
+                /// @solidity memory-safe-assembly
                 assembly {
                     currentOwnerSize := extcodesize(currentOwner)
                 }
