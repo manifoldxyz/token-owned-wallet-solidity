@@ -15,14 +15,16 @@ const CHAIN_ID = 1;
 contract("TokenOwnedWallet", function ([owner, newOwner, contractCreator, account1, account2, account3]) {
   let erc721Contract;
   let registry;
+  let proxy;
   let implementation;
   let contract;
 
   beforeEach(async () => {
     erc721Contract = await ERC721.new("foo", "FOO", { from: owner });
     await erc721Contract.testMint(owner, 1, { from: owner });
+    proxy = await TokenOwnedWalletProxy.new();
     implementation = await TokenOwnedWallet.new({ from: contractCreator });
-    registry = await TokenOwnedWalletRegistry.new(implementation.address, {
+    registry = await TokenOwnedWalletRegistry.new(proxy.address, implementation.address, {
       from: contractCreator,
     });
     contract = await deployProxy(CHAIN_ID, registry, erc721Contract.address, 1, contractCreator);

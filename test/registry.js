@@ -1,20 +1,23 @@
 const truffleAssert = require("truffle-assertions");
 const { encodeERC721SafeTransferFrom } = require("./utils");
 const TokenOwnedWallet = artifacts.require("TokenOwnedWallet");
+const TokenOwnedWalletProxy = artifacts.require("TokenOwnedWalletProxy");
 const TokenOwnedWalletRegistry = artifacts.require("TokenOwnedWalletRegistry");
 const ERC721 = artifacts.require("@manifoldxyz/creator-core-solidity/MockERC721");
 const CHAIN_ID = 1;
 
 contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator]) {
   let erc721Contract;
-  let tokenOwnedWallet;
+  let proxy;
+  let implementation;
   let registry;
 
   beforeEach(async function () {
     erc721Contract = await ERC721.new("foo", "FOO", { from: owner });
     await erc721Contract.testMint(owner, 1, { from: owner });
-    tokenOwnedWallet = await TokenOwnedWallet.new();
-    registry = await TokenOwnedWalletRegistry.new(tokenOwnedWallet.address, {
+    proxy = await TokenOwnedWalletProxy.new();
+    implementation = await TokenOwnedWallet.new();
+    registry = await TokenOwnedWalletRegistry.new(proxy.address, implementation.address, {
       from: contractCreator,
     });
   });

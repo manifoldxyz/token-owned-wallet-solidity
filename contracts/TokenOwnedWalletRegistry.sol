@@ -7,9 +7,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/utils/StorageSlot.sol";
-import "./proxies/TokenOwnedWalletProxy.sol";
-import "./proxies/TokenOwnedWalletProxyFactory.sol";
-import "./TokenOwnedWallet.sol";
 
 interface IProxy {
     function implementation() external view returns (address);
@@ -25,24 +22,32 @@ struct TokenOwnedWalletImplementation {
  * @notice A registry used to create and map token wallet instances to tokens.
  */
 contract TokenOwnedWalletRegistry is Ownable {
-    address private _currentImplementation;
+    address public immutable proxyImplementation;
+    address public currentImplementation;
 
     TokenOwnedWalletImplementation[] private _versionHistory;
 
     // A mapping from salt (used for contract creation) to token wallet address
     mapping(bytes32 => address) private _saltToAddress;
 
-    uint256[50] private __gap;
+    event AccountCreated(
+        address account,
+        address implementation,
+        uint256 chainId,
+        address tokenContract,
+        uint256 tokenId
+    );
 
     /**
      * Constructor
      */
-    constructor(address tokenWalletImplementation) {
-        _currentImplementation = tokenWalletImplementation;
+    constructor(address _proxyImplementation, address _initialImplementation) {
+        proxyImplementation = _proxyImplementation;
+        currentImplementation = _initialImplementation;
         _versionHistory.push(
             TokenOwnedWalletImplementation({
                 version: "1.0.0",
-                implementation: tokenWalletImplementation
+                implementation: currentImplementation
             })
         );
     }
@@ -64,9 +69,44 @@ contract TokenOwnedWalletRegistry is Ownable {
             return _saltToAddress[salt];
         }
 
-        address proxy = TokenOwnedWalletProxyFactory.createProxy(chainId, contractAddress, tokenId, _currentImplementation, salt);
+        address proxy = _createProxy(proxyImplementation, chainId, contractAddress, tokenId, currentImplementation, salt);
         _saltToAddress[salt] = proxy;
         return proxy;
+    }
+
+    /**
+     * @dev Allows to create new proxy contact.
+     * @param implementation Address of the implementation contract.
+     * @param salt Salt used to generate the proxy contract address.
+     */
+    function _createProxy(address clone, uint256 chainId, address contractAddress, uint256 tokenId, address implementation, bytes32 salt) private returns (address proxy) {
+        proxy = cloneDeterministic(clone, salt);
+        (bool success, bytes memory data) = proxy.call(
+            abi.encodeWithSignature("initialize(uint256,address,uint256,address)", chainId, contractAddress, tokenId, implementation)
+        );
+        require(success, string(data));
+
+        emit AccountCreated(proxy, implementation, chainId, contractAddress, tokenId);
+    }
+
+    /**
+     * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.
+     *
+     * This function uses the create2 opcode and a `salt` to deterministically deploy
+     * the clone. Using the same `implementation` and `salt` multiple time will revert, since
+     * the clones cannot be deployed twice at the same address.
+     */
+    function cloneDeterministic(address implementation, bytes32 salt) internal returns (address instance) {
+        /// @solidity memory-safe-assembly
+        assembly {
+            // Cleans the upper 96 bits of the `implementation` word, then packs the first 3 bytes
+            // of the `implementation` address with the bytecode before the address.
+            mstore(0x00, or(shr(0xe8, shl(0x60, implementation)), 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000))
+            // Packs the remaining 17 bytes of `implementation` with the bytecode after the address.
+            mstore(0x20, or(shl(0x78, implementation), 0x5af43d82803e903d91602b57fd5bf3))
+            instance := create2(0, 0x09, 0x37, salt)
+        }
+        require(instance != address(0), "ERC1167: create2 failed");
     }
 
     /**
