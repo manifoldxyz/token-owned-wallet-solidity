@@ -13,7 +13,7 @@ contract TokenOwnedWalletProxy is Initializable {
     uint256 private _chainId;
     address private _contractAddress;
     uint256 private _tokenId;
-    uint256 private _nonce;
+    uint256 public nonce;
 
     constructor() {
         assert(
@@ -87,7 +87,7 @@ contract TokenOwnedWalletProxy is Initializable {
     function upgrade(address implementation_) public {
         require(msg.sender == _owner(), "Caller is not owner");
         require(implementation_ != address(0), "Invalid implementation address");
-        ++_nonce;
+        ++nonce;
         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = implementation_;
     }
 
@@ -97,7 +97,7 @@ contract TokenOwnedWalletProxy is Initializable {
      * This function does not return to its internal call site, it will return directly to the external caller.
      */
     function _fallback() internal virtual {
-        ++_nonce;
+        ++nonce;
         _delegate(_implementation());
     }
 
