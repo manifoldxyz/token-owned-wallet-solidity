@@ -50,22 +50,21 @@ contract TokenOwnedWalletRegistry is Ownable {
     /**
      * @notice Creates a new wallet instance for the provided token's contract address and token
      * ID if a wallet doesn't already exist.
+     *
+     * @param chainId The token's chain ID.
      * @param contractAddress The token's contract address.
      * @param tokenId The token's ID.
      * @return address - The address of the new or current wallet address.
      */
-    function create(address contractAddress, uint256 tokenId) external returns (address) {
-        bytes32 salt = keccak256(abi.encodePacked(contractAddress, tokenId));
+    function create(uint256 chainId, address contractAddress, uint256 tokenId) external returns (address) {
+        bytes32 salt = keccak256(abi.encodePacked(chainId, contractAddress, tokenId));
 
         // Return backpack address if it already exists.
         if (_saltToAddress[salt] != address(0)) {
             return _saltToAddress[salt];
         }
 
-        address proxy = TokenOwnedWalletProxyFactory.createProxy(_currentImplementation, salt);
-
-        TokenOwnedWallet(proxy).initialize(contractAddress, tokenId);
-
+        address proxy = TokenOwnedWalletProxyFactory.createProxy(chainId, contractAddress, tokenId, _currentImplementation, salt);
         _saltToAddress[salt] = proxy;
         return proxy;
     }
@@ -73,37 +72,40 @@ contract TokenOwnedWalletRegistry is Ownable {
     /**
      * @notice Provides the address of the wallet related to the token.
      * @param contractAddress The token's contract address.
+     * @param chainId The token's chain ID.
      * @param tokenId The token's ID.
      * @return address - The wallet address, or address(0) if the wallet doesn't exist.
      */
-    function addressOf(address contractAddress, uint256 tokenId) public view returns (address) {
-        bytes32 salt = keccak256(abi.encodePacked(contractAddress, tokenId));
+    function addressOf(uint256 chainId, address contractAddress, uint256 tokenId) public view returns (address) {
+        bytes32 salt = keccak256(abi.encodePacked(chainId, contractAddress, tokenId));
         return _saltToAddress[salt];
     }
 
     /**
      * @notice Checks if a token has a registered wallet address.
      * @param contractAddress The token's contract address.
+     * @param chainId The token's chain ID.
      * @param tokenId The token's ID.
      * @return bool - Whether or not the address exists.
      */
-    function addressExists(address contractAddress, uint256 tokenId) public view returns (bool) {
-        return addressOf(contractAddress, tokenId) != address(0);
+    function addressExists(uint256 chainId, address contractAddress, uint256 tokenId) public view returns (bool) {
+        return addressOf(chainId, contractAddress, tokenId) != address(0);
     }
 
     /**
      * @notice Returns the wallet implementation owned by the provided token.
      * @param contractAddress The token's contract address.
+     * @param chainId The token's chain ID.
      * @param tokenId The token's ID.
      * @return TokenOwnedWalletImplementation - the implementation used by the token's wallet.
      */
-    function implementationOf(address contractAddress, uint256 tokenId)
+    function implementationOf(uint256 chainId, address contractAddress, uint256 tokenId)
         public
         view
         returns (TokenOwnedWalletImplementation memory)
     {
-        require(addressExists(contractAddress, tokenId), "No wallet found");
-        address implementation = IProxy(addressOf(contractAddress, tokenId)).implementation();
+        require(addressExists(chainId, contractAddress, tokenId), "No wallet found");
+        address implementation = IProxy(addressOf(chainId, contractAddress, tokenId)).implementation();
         for (uint256 i = 0; i < _versionHistory.length; i++) {
             if (implementation == _versionHistory[i].implementation) {
                 return _versionHistory[i];

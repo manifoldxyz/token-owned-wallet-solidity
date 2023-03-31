@@ -3,6 +3,7 @@ const { encodeERC721SafeTransferFrom } = require("./utils");
 const TokenOwnedWallet = artifacts.require("TokenOwnedWallet");
 const TokenOwnedWalletRegistry = artifacts.require("TokenOwnedWalletRegistry");
 const ERC721 = artifacts.require("@manifoldxyz/creator-core-solidity/MockERC721");
+const CHAIN_ID = 1;
 
 contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator]) {
   let erc721Contract;
@@ -26,8 +27,8 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
     });
 
     it("Creates tokenOwnedWallet", async function () {
-      await registry.create(erc721Contract.address, 1, { from: owner });
-      const tokenOwnedWalletAddress = await registry.addressOf(erc721Contract.address, 1);
+      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
+      const tokenOwnedWalletAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
       const tokenOwnedWalletContract = await TokenOwnedWallet.at(tokenOwnedWalletAddress);
       const expectedOwner = await erc721Contract.ownerOf(1);
 
@@ -35,17 +36,17 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
     });
 
     it("Create returns current tokenOwnedWallet address", async function () {
-      await registry.create(erc721Contract.address, 1, { from: owner });
-      const firstCreateAddress = await registry.addressOf(erc721Contract.address, 1);
-      await registry.create(erc721Contract.address, 1, { from: owner });
-      const secondCreateAddress = await registry.addressOf(erc721Contract.address, 1);
+      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
+      const firstCreateAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
+      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
+      const secondCreateAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
 
       assert.equal(firstCreateAddress, secondCreateAddress);
     });
 
     it("Creates functional tokenOwnedWallet", async function () {
-      await registry.create(erc721Contract.address, 1, { from: owner });
-      const tokenOwnedWalletAddress = await registry.addressOf(erc721Contract.address, 1);
+      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
+      const tokenOwnedWalletAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
       const tokenOwnedWalletContract = await TokenOwnedWallet.at(tokenOwnedWalletAddress);
 
       await erc721Contract2.safeTransferFrom(owner, tokenOwnedWalletAddress, 1, { from: owner });
@@ -73,14 +74,14 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
 
   describe("TokenOwnedWalletRegistry.addressOf", function () {
     it("Address recorded", async function () {
-      await registry.create(erc721Contract.address, 1, { from: owner });
-      const tokenOwnedWalletAddress = await registry.addressOf(erc721Contract.address, 1);
+      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
+      const tokenOwnedWalletAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
 
       assert.notEqual(tokenOwnedWalletAddress, "0x0000000000000000000000000000000000000000");
     });
 
     it("Null address if not created", async function () {
-      const tokenOwnedWalletAddress = await registry.addressOf(erc721Contract.address, 1);
+      const tokenOwnedWalletAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
 
       assert.equal(tokenOwnedWalletAddress, "0x0000000000000000000000000000000000000000");
     });
@@ -88,14 +89,14 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
 
   describe("TokenOwnedWalletRegistry.addressExists", function () {
     it("Address exists", async function () {
-      await registry.create(erc721Contract.address, 1, { from: owner });
-      const exists = await registry.addressExists(erc721Contract.address, 1);
+      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
+      const exists = await registry.addressExists(CHAIN_ID, erc721Contract.address, 1);
 
       assert(exists);
     });
 
     it("Address does not exist", async function () {
-      const exists = await registry.addressExists(erc721Contract.address, 1);
+      const exists = await registry.addressExists(CHAIN_ID, erc721Contract.address, 1);
 
       assert(!exists);
     });

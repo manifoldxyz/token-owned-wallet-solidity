@@ -12,11 +12,6 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  * @notice Interface for a smart contract wallet linked to an ERC721 token.
  */
 interface ITokenOwnedWallet is IERC165, IERC721Receiver, IERC1155Receiver {
-    struct Token {
-        address contractAddress;
-        uint256 id;
-    }
-
     enum Operation {
         Call,
         DelegateCall
@@ -38,9 +33,8 @@ interface ITokenOwnedWallet is IERC165, IERC721Receiver, IERC1155Receiver {
 
     /**
      * @notice Returns the token linked to the wallet instance.
-     * @return Token - The ERC721 token.
      */
-    function token() external view returns (Token memory);
+    function token() external view returns (uint256 chainId, address tokenContract, uint256 tokenId);
 
     /**
      * @notice Returns the owner of the token linked to the wallet instance.
@@ -48,9 +42,4 @@ interface ITokenOwnedWallet is IERC165, IERC721Receiver, IERC1155Receiver {
      */
     function owner() external view returns (address);
 
-    /**
-     * @notice Returns the chain ID that the token wallet is deployed on.
-     * @return uint256 - The chain ID.
-     */
-    function getChainId() external view returns (uint256);
 }

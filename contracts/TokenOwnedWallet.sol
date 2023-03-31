@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 /// @author: manifold.xyz
 
-import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -17,102 +16,52 @@ import "./ITokenOwnedWallet.sol";
  * @title TokenWallet
  * @notice A lightweight smart contract wallet linked to an ERC721 token.
  */
-contract TokenOwnedWallet is ITokenOwnedWallet {
-    using Strings for uint256;
-    using Strings for uint16;
+contract TokenOwnedWallet {
+    // Padding for initializable values
+    uint256 private _initializablePadding;
+
+    // Storage slot locations of the Proxy contract pointing to this implementation
+    uint256 private _chainId;
+    address private _contractAddress;
+    uint256 private _tokenId;
 
     event TransactionExecuted(
         address indexed target,
         uint256 indexed value,
         bytes data,
-        Operation operation
+        ITokenOwnedWallet.Operation operation
     );
 
-    // The ERC721 token linked to the wallet instance
-    Token private _token;
 
-    // The block timestamp that the last transaction was executed in.
-    uint256 public lastTransactionTimestamp;
-
-    /**
-     * @dev Throws if the sender is not the backpack owner.
-     */
-    modifier onlyOwner() {
-        require(_isOwner(msg.sender), "Caller is not owner");
-        _;
+    function owner() public view returns (address) {
+        require(_chainId == 0, "Invalid chain ");
+        return IERC721(_contractAddress).ownerOf(_tokenId);
     }
 
-    /**
-     * Initializer
-     */
-    function initialize(address contractAddress, uint256 tokenId) public {
-        require(
-            ERC165Checker.supportsInterface(contractAddress, type(IERC721).interfaceId),
-            "Owning contract must be ERC721"
-        );
-        require(_token.contractAddress == address(0) && _token.id == 0, "Already initialized");
-        _token.contractAddress = contractAddress;
-        _token.id = tokenId;
-        lastTransactionTimestamp = block.timestamp;
-    }
-
-    /**
-     * @inheritdoc ITokenOwnedWallet
-     */
-    function token() public view override returns (Token memory) {
-        return _token;
-    }
-
-    /**
-     * @inheritdoc ITokenOwnedWallet
-     */
-    function owner() public view override returns (address) {
-        return IERC721(_token.contractAddress).ownerOf(_token.id);
-    }
-
-    /**
-     * @inheritdoc ITokenOwnedWallet
-     */
     function execTransaction(
         address _target,
         uint256 _value,
         bytes calldata _data,
-        Operation _operation
-    ) public override onlyOwner returns (bytes memory _result) {
+        ITokenOwnedWallet.Operation _operation
+    ) public returns (bytes memory _result) {
+        require(owner() == msg.sender, "Caller is not owner");
         bool success;
-        if (_operation == Operation.DelegateCall) {
+        if (_operation == ITokenOwnedWallet.Operation.DelegateCall) {
             // solhint-disable-next-line avoid-low-level-calls
             (success, _result) = _target.delegatecall(_data);
         } else {
             // solhint-disable-next-line avoid-low-level-calls
             (success, _result) = _target.call{value: _value}(_data);
         }
-        require(success, "TokenOwnedWallet: tx failed");
-        lastTransactionTimestamp = block.timestamp;
+        require(success, string(_result));
         emit TransactionExecuted(_target, _value, _data, _operation);
         return _result;
     }
 
-    /**
-     * @inheritdoc ITokenOwnedWallet
-     */
-    function getChainId() public view override returns (uint256) {
-        uint256 id;
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            id := chainid()
-        }
-        return id;
-    }
-
-    /**
-     * @inheritdoc IERC165
-     */
     function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
-        override(IERC165)
         returns (bool)
     {
         return (interfaceId == type(ITokenOwnedWallet).interfaceId ||
@@ -121,51 +70,35 @@ contract TokenOwnedWallet is ITokenOwnedWallet {
             interfaceId == type(IERC165).interfaceId);
     }
 
-    /**
-     * @inheritdoc IERC721Receiver
-     */
     function onERC721Received(
         address,
         address,
         uint256 receivedTokenId,
         bytes memory
-    ) public virtual override returns (bytes4) {
+    ) public virtual returns (bytes4) {
+        require(_chainId != 0 || msg.sender != _contractAddress || receivedTokenId != _tokenId, "Cannot own yourself");
         _revertIfOwnershipCycle(msg.sender, receivedTokenId);
         return this.onERC721Received.selector;
     }
 
-    /**
-     * @inheritdoc IERC1155Receiver
-     */
     function onERC1155Received(
         address,
         address,
         uint256,
         uint256,
         bytes memory
-    ) public virtual override returns (bytes4) {
+    ) public virtual returns (bytes4) {
         return this.onERC1155Received.selector;
     }
 
-    /**
-     * @inheritdoc IERC1155Receiver
-     */
     function onERC1155BatchReceived(
         address,
         address,
         uint256[] memory,
         uint256[] memory,
         bytes memory
-    ) public virtual override returns (bytes4) {
+    ) public virtual returns (bytes4) {
         return this.onERC1155BatchReceived.selector;
-    }
-
-    /**
-     * @dev Helper method to check if an address is the owner of the token.
-     * @param _addr The address.
-     */
-    function _isOwner(address _addr) internal view returns (bool) {
-        return owner() == _addr;
     }
 
     /**
@@ -174,23 +107,32 @@ contract TokenOwnedWallet is ITokenOwnedWallet {
      * @param receivedTokenId The ID of the token being received.
      */
     function _revertIfOwnershipCycle(address receivedTokenAddress, uint256 receivedTokenId)
-        internal
-        view
+        internal view
     {
         address currentOwner = owner();
+        require(currentOwner != address(this), "Token in ownership chain");
 
-        // Iterate through this wallet's ownership chain
-        while (ERC165Checker.supportsInterface(currentOwner, type(ITokenOwnedWallet).interfaceId)) {
-            Token memory currentToken = ITokenOwnedWallet(currentOwner).token();
-
-            require(
-                !(currentToken.contractAddress == receivedTokenAddress &&
-                    currentToken.id == receivedTokenId),
-                "Token in ownership chain"
-            );
-
-            // Advance up the ownership chain
-            currentOwner = IERC721(currentToken.contractAddress).ownerOf(currentToken.id);
+        uint32 currentOwnerSize;
+        assembly {
+            currentOwnerSize := extcodesize(currentOwner)
+        }
+        while (currentOwnerSize > 0) {
+            try ITokenOwnedWallet(currentOwner).token() returns (uint256 chainId, address contractAddress, uint256 tokenId) {
+                require(
+                        chainId != 0 ||
+                        contractAddress != receivedTokenAddress ||
+                        tokenId != receivedTokenId,
+                    "Token in ownership chain"
+                );
+                // Advance up the ownership chain
+                currentOwner = IERC721(contractAddress).ownerOf(tokenId);
+                require(currentOwner != address(this), "Token in ownership chain");
+                assembly {
+                    currentOwnerSize := extcodesize(currentOwner)
+                }
+            } catch {
+                break;
+            }
         }
     }
 }
