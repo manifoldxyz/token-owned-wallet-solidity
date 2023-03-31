@@ -28,8 +28,7 @@ contract TokenOwnedWallet {
     event TransactionExecuted(
         address indexed target,
         uint256 indexed value,
-        bytes data,
-        ITokenOwnedWallet.Operation operation
+        bytes data
     );
 
 
@@ -41,20 +40,14 @@ contract TokenOwnedWallet {
     function execTransaction(
         address _target,
         uint256 _value,
-        bytes calldata _data,
-        ITokenOwnedWallet.Operation _operation
+        bytes calldata _data
     ) public returns (bytes memory _result) {
         require(owner() == msg.sender, "Caller is not owner");
         bool success;
-        if (_operation == ITokenOwnedWallet.Operation.DelegateCall) {
-            // solhint-disable-next-line avoid-low-level-calls
-            (success, _result) = _target.delegatecall(_data);
-        } else {
-            // solhint-disable-next-line avoid-low-level-calls
-            (success, _result) = _target.call{value: _value}(_data);
-        }
+        // solhint-disable-next-line avoid-low-level-calls
+        (success, _result) = _target.call{value: _value}(_data);
         require(success, string(_result));
-        emit TransactionExecuted(_target, _value, _data, _operation);
+        emit TransactionExecuted(_target, _value, _data);
         return _result;
     }
 

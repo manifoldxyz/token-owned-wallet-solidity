@@ -12,23 +12,17 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  * @notice Interface for a smart contract wallet linked to an ERC721 token.
  */
 interface ITokenOwnedWallet is IERC165, IERC721Receiver, IERC1155Receiver {
-    enum Operation {
-        Call,
-        DelegateCall
-    }
 
     /**
      * @notice Executes a generic transaction.
      * @param target The address for the transaction.
      * @param value The value of the transaction.
      * @param data The data of the transaction.
-     * @param operation The type of operation to use for the transaction.
      */
     function execTransaction(
         address target,
         uint256 value,
-        bytes calldata data,
-        Operation operation
+        bytes calldata data
     ) external returns (bytes memory);
 
     /**

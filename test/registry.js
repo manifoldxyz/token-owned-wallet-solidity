@@ -64,7 +64,6 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
           erc721Contract2.address,
           0,
           encodedSafeTransferFrom,
-          0,
           {
             from: owner,
           }

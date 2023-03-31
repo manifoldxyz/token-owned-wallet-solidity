@@ -36,16 +36,9 @@ contract("TokenOwnedWallet", function ([owner, newOwner, contractCreator, accoun
 
 
   it("can't be initialized twice", async () => {
-    const calldata = web3.eth.abi.encodeFunctionCall(
-      {
-        name: 'initialize',
-        type: 'function',
-        inputs: [{type: 'uint256', name: 'chainId'}, {type: 'address', name: 'contarctAddress'}, {type: 'uint256', name: 'tokenId'}, {type: 'address', name: '_implementation'}]
-      },
-      [CHAIN_ID, erc721Contract.address, 1, implementation.address]
-    )
+    const proxy = await TokenOwnedWalletProxy.at(contract.address);
     await truffleAssert.reverts(
-      web3.eth.call({ to: contract.address, from: contractCreator, data: calldata }),
+      proxy.initialize(CHAIN_ID, erc721Contract.address, 1, implementation.address, { from: owner }),
       "Initializable: contract is already initialized"
     );
   });
@@ -138,7 +131,7 @@ contract("TokenOwnedWallet", function ([owner, newOwner, contractCreator, accoun
     it("cannot execute a transaction if not the owner", async () => {
       const encodedSafeTransferFrom = encodeERC721SafeTransferFrom(contract.address, newOwner, 1);
       await truffleAssert.reverts(
-        contract.execTransaction(erc721Contract2.address, 0, encodedSafeTransferFrom, 0, {
+        contract.execTransaction(erc721Contract2.address, 0, encodedSafeTransferFrom, {
           from: newOwner,
         }),
         "Caller is not owner"
@@ -149,7 +142,7 @@ contract("TokenOwnedWallet", function ([owner, newOwner, contractCreator, accoun
       await erc721Contract2.safeTransferFrom(owner, contract.address, 1, { from: owner });
       assert.equal(await erc721Contract2.balanceOf(contract.address), 1);
       const encodedSafeTransferFrom = encodeERC721SafeTransferFrom(contract.address, newOwner, 1);
-      await contract.execTransaction(erc721Contract2.address, 0, encodedSafeTransferFrom, 0, {
+      await contract.execTransaction(erc721Contract2.address, 0, encodedSafeTransferFrom, {
         from: owner,
       }),
         assert.equal(await erc721Contract2.balanceOf(newOwner), 1);
@@ -166,31 +159,21 @@ contract("TokenOwnedWallet", function ([owner, newOwner, contractCreator, accoun
         1,
         1
       );
-      await contract.execTransaction(erc1155Contract.address, 0, encodedSafeTransferFrom, 0, {
+      await contract.execTransaction(erc1155Contract.address, 0, encodedSafeTransferFrom, {
         from: owner,
       });
       assert.equal(await erc1155Contract.balanceOf(newOwner, 1), 1);
     });
 
     it("can upgrade wallet implementation", async () => {
-      const newImplementation = await TokenOwnedWallet.new({ from: contractCreator });
-      const migration = await Migration.new(newImplementation.address, { from: contractCreator });
-      const encodedUpgrade = web3.eth.abi.encodeFunctionCall(
-        {
-          inputs: [],
-          name: "migrate",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        []
-      );
-      truffleAssert.passes(
-        contract.execTransaction(migration.address, 0, encodedUpgrade, 1, {
-          from: owner,
-        })
-      );
       const proxy = await TokenOwnedWalletProxy.at(contract.address);
+      const newImplementation = await TokenOwnedWallet.new({ from: contractCreator });
+      await truffleAssert.reverts(
+        proxy.upgrade(newImplementation.address, { from: account1 }),
+        "Caller is not owner"
+      );
+      await proxy.upgrade(newImplementation.address, { from: owner });
+      
       assert.equal(await proxy.implementation(), newImplementation.address);
     });
   });
