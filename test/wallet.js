@@ -7,7 +7,6 @@ const {
 const TokenOwnedWallet = artifacts.require("TokenOwnedWallet");
 const TokenOwnedWalletProxy = artifacts.require("TokenOwnedWalletProxy");
 const TokenOwnedWalletRegistry = artifacts.require("TokenOwnedWalletRegistry");
-const Migration = artifacts.require("Migration");
 const ERC1155 = artifacts.require("@manifoldxyz/creator-core-solidity/MockERC1155");
 const ERC721 = artifacts.require("@manifoldxyz/creator-core-solidity/MockERC721");
 const CHAIN_ID = 1;
@@ -139,13 +138,15 @@ contract("TokenOwnedWallet", function ([owner, newOwner, contractCreator, accoun
     });
 
     it("can transfer an erc721 owned by the TokenOwnedWallet", async () => {
+      const proxy = await TokenOwnedWalletProxy.at(contract.address);
       await erc721Contract2.safeTransferFrom(owner, contract.address, 1, { from: owner });
       assert.equal(await erc721Contract2.balanceOf(contract.address), 1);
       const encodedSafeTransferFrom = encodeERC721SafeTransferFrom(contract.address, newOwner, 1);
       await contract.execTransaction(erc721Contract2.address, 0, encodedSafeTransferFrom, {
         from: owner,
       }),
-        assert.equal(await erc721Contract2.balanceOf(newOwner), 1);
+      assert.equal(await erc721Contract2.balanceOf(newOwner), 1);
+      assert.deepEqual(await proxy.nonce(), new web3.utils.toBN(2));
     });
 
     it("can transfer an erc1155 owned by the TokenOwnedWallet", async () => {
@@ -175,6 +176,7 @@ contract("TokenOwnedWallet", function ([owner, newOwner, contractCreator, accoun
       await proxy.upgrade(newImplementation.address, { from: owner });
       
       assert.equal(await proxy.implementation(), newImplementation.address);
+      assert.deepEqual(await proxy.nonce(), new web3.utils.toBN(1));
     });
   });
 });
