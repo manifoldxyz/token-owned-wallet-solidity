@@ -53,7 +53,7 @@ contract TokenOwnedWalletRegistry {
         if (initdata.length > 0) {
             // solhint-disable-next-line avoid-low-level-calls
             (bool success, ) = wallet.call(initdata);
-            require(success, "TokenOwnedWalletRegistry: Failed to initialize wallet");
+            require(success, "Failed to initialize wallet");
         }
         emit AccountCreated(wallet, implementation, chainId, contractAddress, tokenId, index);
         return wallet;
