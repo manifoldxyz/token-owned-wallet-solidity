@@ -41,6 +41,7 @@ contract(
         [implementation.address]
       );
       contract = await deployProxy(
+        owner,
         registry,
         proxy,
         CHAIN_ID,
@@ -67,7 +68,7 @@ contract(
 
     it("can't be deployed twice", async () => {
       await truffleAssert.reverts(
-        deployProxy(registry, proxy, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata),
+        deployProxy(owner, registry, proxy, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata),
         "Create2: Failed on deploy."
       );
     });
@@ -85,10 +86,20 @@ contract(
       );
     });
 
+    it("cannot deploy someone else's wallet", async () => {
+      const erc721Contract1 = await ERC721.new("foo1", "FOO1", { from: owner });
+      await erc721Contract1.testMint(account1, 1, { from: owner });
+      await truffleAssert.reverts(
+        deployProxy(owner, registry, proxy, CHAIN_ID, erc721Contract1.address, 1, 1, initbytedata),
+        "Failed to initialize wallet"
+      );
+    });
+
     it("cannot own the token that is in ownership chain of the TokenOwnedWallet", async () => {
       const erc721Contract1 = await ERC721.new("foo1", "FOO1", { from: owner });
       await erc721Contract1.testMint(account1, 1, { from: owner });
       const tokenOwnedWalletContract1Token1 = await deployProxy(
+        account1,
         registry,
         proxy,
         CHAIN_ID,
@@ -101,6 +112,7 @@ contract(
       const erc721Contract2 = await ERC721.new("foo2", "FOO2", { from: owner });
       await erc721Contract2.testMint(account2, 1, { from: owner });
       const tokenOwnedWalletContract2Token1 = await deployProxy(
+        account2,
         registry,
         proxy,
         CHAIN_ID,
@@ -113,6 +125,7 @@ contract(
       const erc721Contract3 = await ERC721.new("foo3", "FOO3", { from: owner });
       await erc721Contract3.testMint(account3, 1, { from: owner });
       const tokenOwnedWalletContract3Token1 = await deployProxy(
+        account3,
         registry,
         proxy,
         CHAIN_ID,

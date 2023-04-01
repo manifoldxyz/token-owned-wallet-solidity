@@ -6,7 +6,7 @@ const TokenOwnedWalletRegistry = artifacts.require("TokenOwnedWalletRegistry");
 const ERC721 = artifacts.require("@manifoldxyz/creator-core-solidity/MockERC721");
 const CHAIN_ID = 1;
 
-contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator]) {
+contract("TokenOwnedWalletRegistry", function ([owner, newOwner]) {
   let erc721Contract;
   let proxy;
   let implementation;
@@ -50,7 +50,7 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
         1
       );
 
-      await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata);
+      await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata, { from: owner });
       // Can't be deployed twice
       await truffleAssert.reverts(
         registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata),
@@ -81,7 +81,7 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
 
     it("Creates functional tokenOwnedWallet", async function () {
       const tokenOwnedWalletAddress = (
-        await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata)
+        await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata, { from: owner })
       ).logs[0].args.account;
       const tokenOwnedWalletContract = await TokenOwnedWallet.at(tokenOwnedWalletAddress);
 

@@ -69,6 +69,7 @@ const encodeERC1155SafeTransferFrom = (fromAddress, toAddress, tokenId, amount) 
 };
 
 const deployProxy = async (
+  tokenOwner,
   registry,
   implementation,
   chainId,
@@ -85,7 +86,8 @@ const deployProxy = async (
         tokenAddress,
         tokenId,
         index,
-        initbytedata
+        initbytedata,
+        { from: tokenOwner }
       )
     ).logs[0].args.account
   );

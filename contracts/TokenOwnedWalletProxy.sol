@@ -9,6 +9,11 @@ import "@openzeppelin/contracts/utils/StorageSlot.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./lib/TokenOwnedWalletBytecode.sol";
 
+interface ITokenOwnedWalletProxyOwner {
+    function _owner() external view returns(address);
+}
+
+
 contract TokenOwnedWalletProxy is Initializable {
     uint256 public nonce;
 
@@ -18,10 +23,21 @@ contract TokenOwnedWalletProxy is Initializable {
         );
     }
 
+     modifier onlyOwner {
+        (bool success, bytes memory data) = _implementation().delegatecall(
+            abi.encodeWithSignature("owner()")
+        );
+        require(success && abi.decode(data, (address)) == msg.sender, "Caller is not owner");
+        _;
+    }
+
     /**
      * Initializer
      */
     function initialize(address implementation_) public initializer {
+        (uint256 chainId, address contractAddress, uint256 tokenId) = TokenOwnedWalletBytecode
+            .token();
+        require(chainId == block.chainid && IERC721(contractAddress).ownerOf(tokenId) == tx.origin, "Not owner of token");
         require(implementation_ != address(0), "Invalid implementation address");
         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = implementation_;
     }
@@ -76,8 +92,7 @@ contract TokenOwnedWalletProxy is Initializable {
         }
     }
 
-    function upgrade(address implementation_) public {
-        require(msg.sender == _owner(), "Caller is not owner");
+    function upgrade(address implementation_) public onlyOwner {
         require(implementation_ != address(0), "Invalid implementation address");
         ++nonce;
         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = implementation_;
@@ -112,14 +127,16 @@ contract TokenOwnedWalletProxy is Initializable {
      * @dev Returns the owner of the token owned wallet
      */
     function owner() external view returns (address) {
-        return _owner();
+        // We do this in order to do a view delegatecall
+        return ITokenOwnedWalletProxyOwner(address(this))._owner();
     }
 
-    function _owner() private view returns (address) {
-        (uint256 chainId, address contractAddress, uint256 tokenId) = TokenOwnedWalletBytecode
-            .token();
-        if (chainId != block.chainid) return address(0);
-        return IERC721(contractAddress).ownerOf(tokenId);
+    function _owner() external returns (address) {
+        (bool success, bytes memory data) = _implementation().delegatecall(
+            abi.encodeWithSignature("owner()")
+        );
+        require(success, "Failed to get owner");
+        return abi.decode(data, (address));
     }
 
     /**
