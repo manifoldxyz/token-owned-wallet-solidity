@@ -54,6 +54,13 @@ contract(
       );
     });
 
+    it("can't be deployed twice", async () => {
+      await truffleAssert.reverts(
+        deployProxy(registry, proxy, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata),
+        "Create2: Failed on deploy."
+      );
+    });
+
     it("uses owner of erc721 token as owner of TokenOwnedWallet", async () => {
       assert.equal(await contract.owner(), owner);
       await erc721Contract.safeTransferFrom(owner, newOwner, 1, { from: owner });

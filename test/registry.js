@@ -42,6 +42,12 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
       const expectedAddress = await registry.addressOf(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1);
 
       await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata);
+      // Can't be deployed twice
+      await truffleAssert.reverts(
+        registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata),
+        "Create2: Failed on deploy."
+      );
+
       const tokenOwnedWalletAddress = await registry.addressOf(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1);
       assert.equal(tokenOwnedWalletAddress, expectedAddress);
 
