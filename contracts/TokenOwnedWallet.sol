@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "./ITokenOwnedWallet.sol";
+import "./lib/TokenOwnedWalletBytecode.sol";
 
 /**
  * @title TokenWallet
@@ -20,16 +21,12 @@ contract TokenOwnedWallet {
     // Padding for initializable values
     uint256 private _initializablePadding;
 
-    // Storage slot locations of the Proxy contract pointing to this implementation
-    uint256 private _chainId;
-    address private _contractAddress;
-    uint256 private _tokenId;
-
     event TransactionExecuted(address indexed target, uint256 indexed value, bytes data);
 
     function owner() public view returns (address) {
-        require(_chainId == 0, "Invalid chain ");
-        return IERC721(_contractAddress).ownerOf(_tokenId);
+        (uint256 chainId, address contractAddress, uint256 tokenId) = TokenOwnedWalletBytecode.token();
+        if (chainId != block.chainid) return address(0);
+        return IERC721(contractAddress).ownerOf(tokenId);
     }
 
     function execTransaction(
@@ -59,8 +56,9 @@ contract TokenOwnedWallet {
         uint256 receivedTokenId,
         bytes memory
     ) public virtual returns (bytes4) {
+        (uint256 _chainId, address _contractAddress, uint256 _tokenId) = TokenOwnedWalletBytecode.token();
         require(
-            _chainId != 0 || msg.sender != _contractAddress || receivedTokenId != _tokenId,
+            _chainId != block.chainid || msg.sender != _contractAddress || receivedTokenId != _tokenId,
             "Cannot own yourself"
         );
         _revertIfOwnershipCycle(msg.sender, receivedTokenId);
@@ -111,9 +109,9 @@ contract TokenOwnedWallet {
                 uint256 tokenId
             ) {
                 require(
-                    chainId != 0 ||
-                        contractAddress != receivedTokenAddress ||
-                        tokenId != receivedTokenId,
+                    chainId != block.chainid ||
+                    contractAddress != receivedTokenAddress ||
+                    tokenId != receivedTokenId,
                     "Token in ownership chain"
                 );
                 // Advance up the ownership chain

@@ -19,16 +19,25 @@ contract(
     let proxy;
     let implementation;
     let contract;
+    let initbytedata;
 
     beforeEach(async () => {
       erc721Contract = await ERC721.new("foo", "FOO", { from: owner });
       await erc721Contract.testMint(owner, 1, { from: owner });
       proxy = await TokenOwnedWalletProxy.new();
-      implementation = await TokenOwnedWallet.new({ from: contractCreator });
-      registry = await TokenOwnedWalletRegistry.new(proxy.address, implementation.address, {
-        from: contractCreator,
-      });
-      contract = await deployProxy(CHAIN_ID, registry, erc721Contract.address, 1, contractCreator);
+      implementation = await TokenOwnedWallet.new();
+      registry = await TokenOwnedWalletRegistry.new();
+      initbytedata = web3.eth.abi.encodeFunctionCall({
+        name: "initialize",
+        type: "function",
+        inputs: [
+          {
+            type: "address",
+            name: "implementation_",
+          }
+        ],
+      }, [implementation.address]);
+      contract = await deployProxy(registry, proxy, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata);
     });
 
     it("initializes correctly", async () => {
@@ -38,7 +47,7 @@ contract(
     it("can't be initialized twice", async () => {
       const proxy = await TokenOwnedWalletProxy.at(contract.address);
       await truffleAssert.reverts(
-        proxy.initialize(CHAIN_ID, erc721Contract.address, 1, implementation.address, {
+        proxy.initialize(implementation.address, {
           from: owner,
         }),
         "Initializable: contract is already initialized"
@@ -61,33 +70,15 @@ contract(
     it("cannot own the token that is in ownership chain of the TokenOwnedWallet", async () => {
       const erc721Contract1 = await ERC721.new("foo1", "FOO1", { from: owner });
       await erc721Contract1.testMint(account1, 1, { from: owner });
-      const tokenOwnedWalletContract1Token1 = await deployProxy(
-        CHAIN_ID,
-        registry,
-        erc721Contract1.address,
-        1,
-        contractCreator
-      );
+      const tokenOwnedWalletContract1Token1 = await deployProxy(registry, proxy, CHAIN_ID, erc721Contract1.address, 1, 1, initbytedata);
 
       const erc721Contract2 = await ERC721.new("foo2", "FOO2", { from: owner });
       await erc721Contract2.testMint(account2, 1, { from: owner });
-      const tokenOwnedWalletContract2Token1 = await deployProxy(
-        CHAIN_ID,
-        registry,
-        erc721Contract2.address,
-        1,
-        contractCreator
-      );
+      const tokenOwnedWalletContract2Token1 = await deployProxy(registry, proxy, CHAIN_ID, erc721Contract2.address, 1, 1, initbytedata);
 
       const erc721Contract3 = await ERC721.new("foo3", "FOO3", { from: owner });
       await erc721Contract3.testMint(account3, 1, { from: owner });
-      const tokenOwnedWalletContract3Token1 = await deployProxy(
-        CHAIN_ID,
-        registry,
-        erc721Contract3.address,
-        1,
-        contractCreator
-      );
+      const tokenOwnedWalletContract3Token1 = await deployProxy(registry, proxy, CHAIN_ID, erc721Contract3.address, 1, 1, initbytedata);
 
       // Move token that holds erc721Contract1 token 1 to the wallet of erc721Contract2 token 1 (this is ok)
       await erc721Contract1.safeTransferFrom(account1, tokenOwnedWalletContract2Token1.address, 1, {

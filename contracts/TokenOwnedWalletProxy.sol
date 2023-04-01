@@ -7,11 +7,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/StorageSlot.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "./lib/TokenOwnedWalletBytecode.sol";
 
 contract TokenOwnedWalletProxy is Initializable {
-    uint256 private _chainId;
-    address private _contractAddress;
-    uint256 private _tokenId;
     uint256 public nonce;
 
     constructor() {
@@ -24,18 +22,10 @@ contract TokenOwnedWalletProxy is Initializable {
      * Initializer
      */
     function initialize(
-        uint256 chainId,
-        address contractAddress,
-        uint256 tokenId,
         address implementation_
     ) public initializer {
         require(implementation_ != address(0), "Invalid implementation address");
         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = implementation_;
-        if (chainId != block.chainid) {
-            _chainId = chainId;
-        }
-        _contractAddress = contractAddress;
-        _tokenId = tokenId;
     }
 
     /**
@@ -108,19 +98,8 @@ contract TokenOwnedWalletProxy is Initializable {
     /**
      * @dev Returns the owner token chainId, contract address, and token id.
      */
-    function token()
-        external
-        view
-        returns (
-            uint256 chainId,
-            address tokenContract,
-            uint256 tokenId
-        )
-    {
-        if (_chainId == 0) {
-            return (block.chainid, _contractAddress, _tokenId);
-        }
-        return (_chainId, _contractAddress, _tokenId);
+    function token() external view returns (uint256, address, uint256) {
+        return TokenOwnedWalletBytecode.token();
     }
 
     /**
@@ -131,7 +110,9 @@ contract TokenOwnedWalletProxy is Initializable {
     }
 
     function _owner() private view returns (address) {
-        return IERC721(_contractAddress).ownerOf(_tokenId);
+        (uint256 chainId, address contractAddress, uint256 tokenId) = TokenOwnedWalletBytecode.token();
+        if (chainId != block.chainid) return address(0);
+        return IERC721(contractAddress).ownerOf(tokenId);
     }
 
     /**

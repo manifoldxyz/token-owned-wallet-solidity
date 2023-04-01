@@ -11,16 +11,25 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
   let proxy;
   let implementation;
   let registry;
+  let initbytedata;
 
   beforeEach(async function () {
     erc721Contract = await ERC721.new("foo", "FOO", { from: owner });
     await erc721Contract.testMint(owner, 1, { from: owner });
     proxy = await TokenOwnedWalletProxy.new();
     implementation = await TokenOwnedWallet.new();
-    registry = await TokenOwnedWalletRegistry.new(proxy.address, implementation.address, {
-      from: contractCreator,
+    registry = await TokenOwnedWalletRegistry.new();
+    initbytedata = web3.eth.abi.encodeFunctionCall({
+      name: "initialize",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "implementation_",
+        }
+      ],
+    }, [implementation.address]);
     });
-  });
 
   describe("TokenOwnedWalletRegistry.create", function () {
     let erc721Contract2;
@@ -30,26 +39,27 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
     });
 
     it("Creates tokenOwnedWallet", async function () {
-      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
-      const tokenOwnedWalletAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
-      const tokenOwnedWalletContract = await TokenOwnedWallet.at(tokenOwnedWalletAddress);
+      const expectedAddress = await registry.addressOf(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1);
+
+      await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata);
+      const tokenOwnedWalletAddress = await registry.addressOf(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1);
+      assert.equal(tokenOwnedWalletAddress, expectedAddress);
+
+      const tokenOwnedWalletContract = await TokenOwnedWalletProxy.at(tokenOwnedWalletAddress);
       const expectedOwner = await erc721Contract.ownerOf(1);
 
       assert.equal(await tokenOwnedWalletContract.owner(), expectedOwner);
-    });
 
-    it("Create returns current tokenOwnedWallet address", async function () {
-      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
-      const firstCreateAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
-      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
-      const secondCreateAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
+      const token = await tokenOwnedWalletContract.token();
+      assert.equal(token[0], CHAIN_ID);
+      assert.equal(token[1], erc721Contract.address);
+      assert.equal(token[2], 1);
 
-      assert.equal(firstCreateAddress, secondCreateAddress);
+      assert.equal(await tokenOwnedWalletContract.implementation(), implementation.address);
     });
 
     it("Creates functional tokenOwnedWallet", async function () {
-      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
-      const tokenOwnedWalletAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
+      const tokenOwnedWalletAddress = (await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata)).logs[0].args.account;
       const tokenOwnedWalletContract = await TokenOwnedWallet.at(tokenOwnedWalletAddress);
 
       await erc721Contract2.safeTransferFrom(owner, tokenOwnedWalletAddress, 1, { from: owner });
@@ -71,36 +81,6 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
       );
 
       assert.equal(await erc721Contract2.balanceOf(newOwner), 1);
-    });
-  });
-
-  describe("TokenOwnedWalletRegistry.addressOf", function () {
-    it("Address recorded", async function () {
-      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
-      const tokenOwnedWalletAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
-
-      assert.notEqual(tokenOwnedWalletAddress, "0x0000000000000000000000000000000000000000");
-    });
-
-    it("Null address if not created", async function () {
-      const tokenOwnedWalletAddress = await registry.addressOf(CHAIN_ID, erc721Contract.address, 1);
-
-      assert.equal(tokenOwnedWalletAddress, "0x0000000000000000000000000000000000000000");
-    });
-  });
-
-  describe("TokenOwnedWalletRegistry.addressExists", function () {
-    it("Address exists", async function () {
-      await registry.create(CHAIN_ID, erc721Contract.address, 1, { from: owner });
-      const exists = await registry.addressExists(CHAIN_ID, erc721Contract.address, 1);
-
-      assert(exists);
-    });
-
-    it("Address does not exist", async function () {
-      const exists = await registry.addressExists(CHAIN_ID, erc721Contract.address, 1);
-
-      assert(!exists);
     });
   });
 });
