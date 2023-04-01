@@ -50,7 +50,9 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner]) {
         1
       );
 
-      await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata, { from: owner });
+      await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata, {
+        from: owner,
+      });
       // Can't be deployed twice
       await truffleAssert.reverts(
         registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata),
@@ -81,7 +83,9 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner]) {
 
     it("Creates functional tokenOwnedWallet", async function () {
       const tokenOwnedWalletAddress = (
-        await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata, { from: owner })
+        await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata, {
+          from: owner,
+        })
       ).logs[0].args.account;
       const tokenOwnedWalletContract = await TokenOwnedWallet.at(tokenOwnedWalletAddress);
 

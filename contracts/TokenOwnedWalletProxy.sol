@@ -10,9 +10,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./lib/TokenOwnedWalletBytecode.sol";
 
 interface ITokenOwnedWalletProxyOwner {
-    function _owner() external view returns(address);
+    function _owner() external view returns (address);
 }
-
 
 contract TokenOwnedWalletProxy is Initializable {
     uint256 public nonce;
@@ -23,7 +22,7 @@ contract TokenOwnedWalletProxy is Initializable {
         );
     }
 
-     modifier onlyOwner {
+    modifier onlyOwner() {
         (bool success, bytes memory data) = _implementation().delegatecall(
             abi.encodeWithSignature("owner()")
         );
@@ -37,7 +36,10 @@ contract TokenOwnedWalletProxy is Initializable {
     function initialize(address implementation_) public initializer {
         (uint256 chainId, address contractAddress, uint256 tokenId) = TokenOwnedWalletBytecode
             .token();
-        require(chainId == block.chainid && IERC721(contractAddress).ownerOf(tokenId) == tx.origin, "Not owner of token");
+        require(
+            chainId == block.chainid && IERC721(contractAddress).ownerOf(tokenId) == tx.origin,
+            "Not owner of token"
+        );
         require(implementation_ != address(0), "Invalid implementation address");
         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = implementation_;
     }
@@ -92,6 +94,9 @@ contract TokenOwnedWalletProxy is Initializable {
         }
     }
 
+    /**
+     * @dev Upgrades the implementation.  Only the token owner can call this.
+     */
     function upgrade(address implementation_) public onlyOwner {
         require(implementation_ != address(0), "Invalid implementation address");
         ++nonce;
