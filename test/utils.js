@@ -68,8 +68,27 @@ const encodeERC1155SafeTransferFrom = (fromAddress, toAddress, tokenId, amount) 
   );
 };
 
-const deployProxy = async (registry, implementation, chainId, tokenAddress, tokenId, index, initbytedata) => {
-  return TokenOwnedWallet.at((await registry.create(implementation.address, chainId, tokenAddress, tokenId, index, initbytedata)).logs[0].args.account);
+const deployProxy = async (
+  registry,
+  implementation,
+  chainId,
+  tokenAddress,
+  tokenId,
+  index,
+  initbytedata
+) => {
+  return TokenOwnedWallet.at(
+    (
+      await registry.create(
+        implementation.address,
+        chainId,
+        tokenAddress,
+        tokenId,
+        index,
+        initbytedata
+      )
+    ).logs[0].args.account
+  );
 };
 
 module.exports = { encodeERC721SafeTransferFrom, encodeERC1155SafeTransferFrom, deployProxy };

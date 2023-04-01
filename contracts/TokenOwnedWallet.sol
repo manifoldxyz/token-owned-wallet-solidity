@@ -24,7 +24,8 @@ contract TokenOwnedWallet {
     event TransactionExecuted(address indexed target, uint256 indexed value, bytes data);
 
     function owner() public view returns (address) {
-        (uint256 chainId, address contractAddress, uint256 tokenId) = TokenOwnedWalletBytecode.token();
+        (uint256 chainId, address contractAddress, uint256 tokenId) = TokenOwnedWalletBytecode
+            .token();
         if (chainId != block.chainid) return address(0);
         return IERC721(contractAddress).ownerOf(tokenId);
     }
@@ -56,9 +57,12 @@ contract TokenOwnedWallet {
         uint256 receivedTokenId,
         bytes memory
     ) public virtual returns (bytes4) {
-        (uint256 _chainId, address _contractAddress, uint256 _tokenId) = TokenOwnedWalletBytecode.token();
+        (uint256 _chainId, address _contractAddress, uint256 _tokenId) = TokenOwnedWalletBytecode
+            .token();
         require(
-            _chainId != block.chainid || msg.sender != _contractAddress || receivedTokenId != _tokenId,
+            _chainId != block.chainid ||
+                msg.sender != _contractAddress ||
+                receivedTokenId != _tokenId,
             "Cannot own yourself"
         );
         _revertIfOwnershipCycle(msg.sender, receivedTokenId);
@@ -110,8 +114,8 @@ contract TokenOwnedWallet {
             ) {
                 require(
                     chainId != block.chainid ||
-                    contractAddress != receivedTokenAddress ||
-                    tokenId != receivedTokenId,
+                        contractAddress != receivedTokenAddress ||
+                        tokenId != receivedTokenId,
                     "Token in ownership chain"
                 );
                 // Advance up the ownership chain

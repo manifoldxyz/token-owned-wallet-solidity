@@ -13,7 +13,6 @@ import "./lib/TokenOwnedWalletBytecode.sol";
  * @notice A registry used to create and map token wallet instances to tokens.
  */
 contract TokenOwnedWalletRegistry {
-
     event AccountCreated(
         address account,
         address implementation,
@@ -40,8 +39,16 @@ contract TokenOwnedWalletRegistry {
         uint256 index,
         bytes calldata initdata
     ) external returns (address) {
-        bytes32 salt = keccak256(abi.encodePacked(implementation, chainId, contractAddress, tokenId, index));
-        bytes memory code = TokenOwnedWalletBytecode.createCode(implementation, chainId, contractAddress, tokenId, index);
+        bytes32 salt = keccak256(
+            abi.encodePacked(implementation, chainId, contractAddress, tokenId, index)
+        );
+        bytes memory code = TokenOwnedWalletBytecode.createCode(
+            implementation,
+            chainId,
+            contractAddress,
+            tokenId,
+            index
+        );
         address wallet = Create2.deploy(0, salt, code);
         if (initdata.length > 0) {
             // solhint-disable-next-line avoid-low-level-calls
@@ -66,13 +73,20 @@ contract TokenOwnedWalletRegistry {
         uint256 tokenId,
         uint256 index
     ) public view returns (address) {
-        bytes32 salt = keccak256(abi.encodePacked(implementation, chainId, contractAddress, tokenId, index));
-        bytes memory code = TokenOwnedWalletBytecode.createCode(implementation, chainId, contractAddress, tokenId, index);
+        bytes32 salt = keccak256(
+            abi.encodePacked(implementation, chainId, contractAddress, tokenId, index)
+        );
+        bytes memory code = TokenOwnedWalletBytecode.createCode(
+            implementation,
+            chainId,
+            contractAddress,
+            tokenId,
+            index
+        );
         bytes32 hash = keccak256(
             abi.encodePacked(bytes1(0xff), address(this), salt, keccak256(code))
         );
         // NOTE: cast last 20 bytes of hash to address
-        return address(uint160(uint(hash)));
+        return address(uint160(uint256(hash)));
     }
-
 }

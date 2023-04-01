@@ -19,17 +19,20 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
     proxy = await TokenOwnedWalletProxy.new();
     implementation = await TokenOwnedWallet.new();
     registry = await TokenOwnedWalletRegistry.new();
-    initbytedata = web3.eth.abi.encodeFunctionCall({
-      name: "initialize",
-      type: "function",
-      inputs: [
-        {
-          type: "address",
-          name: "implementation_",
-        }
-      ],
-    }, [implementation.address]);
-    });
+    initbytedata = web3.eth.abi.encodeFunctionCall(
+      {
+        name: "initialize",
+        type: "function",
+        inputs: [
+          {
+            type: "address",
+            name: "implementation_",
+          },
+        ],
+      },
+      [implementation.address]
+    );
+  });
 
   describe("TokenOwnedWalletRegistry.create", function () {
     let erc721Contract2;
@@ -39,7 +42,13 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
     });
 
     it("Creates tokenOwnedWallet", async function () {
-      const expectedAddress = await registry.addressOf(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1);
+      const expectedAddress = await registry.addressOf(
+        proxy.address,
+        CHAIN_ID,
+        erc721Contract.address,
+        1,
+        1
+      );
 
       await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata);
       // Can't be deployed twice
@@ -48,7 +57,13 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
         "Create2: Failed on deploy."
       );
 
-      const tokenOwnedWalletAddress = await registry.addressOf(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1);
+      const tokenOwnedWalletAddress = await registry.addressOf(
+        proxy.address,
+        CHAIN_ID,
+        erc721Contract.address,
+        1,
+        1
+      );
       assert.equal(tokenOwnedWalletAddress, expectedAddress);
 
       const tokenOwnedWalletContract = await TokenOwnedWalletProxy.at(tokenOwnedWalletAddress);
@@ -65,7 +80,9 @@ contract("TokenOwnedWalletRegistry", function ([owner, newOwner, contractCreator
     });
 
     it("Creates functional tokenOwnedWallet", async function () {
-      const tokenOwnedWalletAddress = (await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata)).logs[0].args.account;
+      const tokenOwnedWalletAddress = (
+        await registry.create(proxy.address, CHAIN_ID, erc721Contract.address, 1, 1, initbytedata)
+      ).logs[0].args.account;
       const tokenOwnedWalletContract = await TokenOwnedWallet.at(tokenOwnedWalletAddress);
 
       await erc721Contract2.safeTransferFrom(owner, tokenOwnedWalletAddress, 1, { from: owner });

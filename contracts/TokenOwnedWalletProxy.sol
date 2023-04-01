@@ -21,9 +21,7 @@ contract TokenOwnedWalletProxy is Initializable {
     /**
      * Initializer
      */
-    function initialize(
-        address implementation_
-    ) public initializer {
+    function initialize(address implementation_) public initializer {
         require(implementation_ != address(0), "Invalid implementation address");
         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = implementation_;
     }
@@ -98,7 +96,15 @@ contract TokenOwnedWalletProxy is Initializable {
     /**
      * @dev Returns the owner token chainId, contract address, and token id.
      */
-    function token() external view returns (uint256, address, uint256) {
+    function token()
+        external
+        view
+        returns (
+            uint256,
+            address,
+            uint256
+        )
+    {
         return TokenOwnedWalletBytecode.token();
     }
 
@@ -110,7 +116,8 @@ contract TokenOwnedWalletProxy is Initializable {
     }
 
     function _owner() private view returns (address) {
-        (uint256 chainId, address contractAddress, uint256 tokenId) = TokenOwnedWalletBytecode.token();
+        (uint256 chainId, address contractAddress, uint256 tokenId) = TokenOwnedWalletBytecode
+            .token();
         if (chainId != block.chainid) return address(0);
         return IERC721(contractAddress).ownerOf(tokenId);
     }
